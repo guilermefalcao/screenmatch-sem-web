@@ -4,9 +4,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import br.com.alura.screenmatch.model.DadosSerie;
-import br.com.alura.screenmatch.service.ConsumoAPI;
-import br.com.alura.screenmatch.service.ConverteDados;
+import br.com.alura.screenmatch.exercicios.ExerciciosLambda;
+import br.com.alura.screenmatch.principal.Principal;
 
 // Anotação que marca esta classe como uma aplicação Spring Boot
 // Combina @Configuration, @EnableAutoConfiguration e @ComponentScan
@@ -23,23 +22,27 @@ public class ScreenmatchApplication implements CommandLineRunner {
 	// CommandLineRunner permite executar código quando a aplicação inicia
 	@Override
 	public void run(String... args) throws Exception {
-		// Cria uma instância da classe ConsumoAPI para fazer requisições HTTP
-		var consumoApi = new ConsumoAPI();
+		// Cria instância da classe Principal que contém a lógica do menu
+		Principal principal = new Principal();
+
 		
-		// Faz requisição para a API OMDB buscando dados da série Gilmore Girls
-		var json = consumoApi.obterDados("http://www.omdbapi.com/?t=gilmore+girls&apikey=6585022c");
 		
-		// Cria instância do conversor de dados
-		ConverteDados conversor = new ConverteDados();
+		// Chama o método que exibe o menu para interação com o usuário
+		principal.exibirMenu();
+
+
+		//para chamar os exercicios da aula de lambda expressions
+		//ExerciciosLambda.executarTodos();
 		
-		// Converte o JSON da série em objeto DadosSerie
-		DadosSerie dados = conversor.obterDados(json, DadosSerie.class);
-		
-		// Exibe apenas o objeto DadosSerie convertido (campos mapeados)
-		System.out.println(dados);
-		
-		// Faz requisição à API do café (apenas para demonstração)
-		json = consumoApi.obterDados("https://coffee.alexflipnote.dev/random.json");
-		System.out.println(json);
+		// Código comentado - exemplo de busca de temporadas (movido para Principal)
+		/*
+		List<DadosTemporada> temporadas = new ArrayList<>();
+		for (int i = 1; i <= dados.totalTemporadas(); i++) {
+			json = consumoApi.obterDados("http://www.omdbapi.com/?t=gilmore+girls&season=" + i + "&apikey=6585022c");
+			DadosTemporada dadosTemporada = conversor.obterDados(json, DadosTemporada.class);
+			temporadas.add(dadosTemporada);		
+		}
+		temporadas.forEach(System.out::println);
+		*/
 	}
 }
