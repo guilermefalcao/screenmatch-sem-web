@@ -1,5 +1,6 @@
 package br.com.alura.screenmatch;
 
+import java.util.Scanner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,16 +26,32 @@ public class ScreenmatchApplicationExercicios implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        Scanner scanner = new Scanner(System.in);
+        
         System.out.println("Escolha uma opção:");
         System.out.println("1 - Executar exercícios de Lambda");
         System.out.println("2 - Executar projeto de séries");
-        System.out.println();
+        System.out.print("Digite sua opção (1 ou 2): ");
         
-        // Para testar os exercícios, descomente a linha abaixo:
-        ExerciciosLambda.executarTodos();
+        String opcao = scanner.nextLine();
         
-        // Para testar o projeto de séries, descomente as linhas abaixo:
-        // Principal principal = new Principal();
-        // principal.exibirMenu();
+        switch (opcao) {
+            case "1":
+                System.out.println("\n=== EXECUTANDO EXERCÍCIOS DE LAMBDA ===");
+                ExerciciosLambda.executarTodos();
+                break;
+            case "2":
+                System.out.println("\n=== EXECUTANDO PROJETO DE SÉRIES ===");
+                Principal principal = new Principal();
+                principal.exibirMenu();
+                break;
+            default:
+                System.out.println("Opção inválida! Executando exercícios por padrão...");
+                ExerciciosLambda.executarTodos();
+                break;
+        }
+        
+        // Não fechar o scanner para evitar conflitos
+        // scanner.close();
     }
 }
