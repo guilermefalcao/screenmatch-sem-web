@@ -5,7 +5,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +41,12 @@ public class Principal {
         System.out.println("Digite o nome da série para busca: ");
         var nomeSerie = leitura.nextLine();
 
+        // Validação de entrada vazia
+        if (nomeSerie == null || nomeSerie.trim().isEmpty()) {
+            System.out.println("Nome da série não pode estar vazio!");
+            return;
+        }
+
         // Faz requisição para a API OMDB
         // Substitui espaços por "+" para formar URL válida
         var json = consumoApi.obterDados(
@@ -45,6 +54,12 @@ public class Principal {
         
         // Converte o JSON retornado em objeto DadosSerie
         DadosSerie dadosSerie = conversor.obterDados(json, DadosSerie.class);
+        
+        // Validação se a série foi encontrada
+        if (dadosSerie.titulo() == null || dadosSerie.totalTemporadas() == null) {
+            System.out.println("Série não encontrada! Verifique o nome e tente novamente.");
+            return;
+        }
         
         // Exibe os dados da série
         System.out.println(dadosSerie);
@@ -102,18 +117,17 @@ public class Principal {
                 .flatMap(temp -> temp.episodios().stream())  //gera fluxo de dados com todas as temporadas
                 .collect(Collectors.toList());  //pega o resultado e joga em uma nova lista
 
-                System.out.println("\nTop 5 episódios:");
+                System.out.println("\nTop 10 episódios:");
                 dadosEpisodios.stream()
-                .filter(e -> !e.avaliacao().equalsIgnoreCase("N/A"))
+                .filter(e -> !e.avaliacao().equalsIgnoreCase("N/A "))
+                .peek(e -> System.out.println("---- Primeiro filtro (N/A) " + e )) // peek() permite "espiar" os dados em cada etapa do pipeline sem modificá-los
                 .sorted(Comparator.comparing(DadosEpisodio::avaliacao).reversed())
-                .limit(5)
+                .peek(e -> System.out.println("---- Ordenação " + e )) // Mostra como os dados estão após a ordenação
+                .limit(10)
+                .peek(e -> System.out.println("---- Limite " +e )) // Exibe apenas os 10 primeiros após aplicar limit()
+                .map(e -> e.titulo().toUpperCase())
+                .peek(e -> System.out.println("---- Mapeamento " +e )) // Mostra os títulos já convertidos para maiúsculas
                 .forEach(System.out::println);
-
-                //toList nao adiciona coisas novas na lista
-                // .collect  consegue adicionar
-                
-
-
 
         // Convertendo DadosEpisodio para objetos Episodio usando streams
         // flatMap() "achata" as listas de episódios de cada temporada em uma única lista
@@ -123,8 +137,48 @@ public class Principal {
                 )
                 .collect(Collectors.toList());
 
+        // Agrupamento de dados - Map com estrutura chave:valor (temporada:média de avaliação)
+        System.out.println("\n=== AVALIAÇÕES MÉDIAS POR TEMPORADA ===");
+        
+        // Filtra episódios com avaliação válida (> 0.0) e agrupa por temporada
+        Map<Integer, Double> avaliacoesPorTemporada = episodios.stream()
+                .filter(e -> e.getAvaliacao() > 0.0) // Remove episódios com avaliação 0.0 (eram "N/A")
+                .collect(Collectors.groupingBy(
+                        Episodio::getTemporada, // Chave: número da temporada
+                        Collectors.averagingDouble(Episodio::getAvaliacao) // Valor: média das avaliações
+                ));
+        
+        // Exibe o resultado formatado
+        System.out.println(avaliacoesPorTemporada);
+        
+        // Exibição mais legível das avaliações por temporada
+        avaliacoesPorTemporada.forEach((temporada, media) -> 
+            System.out.println("Temporada " + temporada + ": " + String.format("%.2f", media))
+        );
+
         // Exibe todos os episódios usando o toString() personalizado
         episodios.forEach(System.out::println);
+
+
+
+        // Busca por trecho do título - findFirst() retorna Optional<Episodio>
+        System.out.println("\nDigite um trecho do titulo do episodio que deseja encontrar:");
+        var trechoTitulo = leitura.nextLine();
+
+        // Optional é usado para evitar NullPointerException quando nenhum elemento é encontrado
+        Optional<Episodio> episodioEncontrado = episodios.stream()
+                .filter(e -> e.getTitulo().toUpperCase().contains(trechoTitulo.toUpperCase())) // Busca case-insensitive
+                .findFirst(); // Retorna Optional<Episodio> - pode estar presente ou vazio
+
+        // Verifica se encontrou algum episódio
+        if (episodioEncontrado.isPresent()) {
+            System.out.println("Episódio encontrado: " + episodioEncontrado.get());
+        } else {
+            System.out.println("Nenhum episódio encontrado com o trecho: " + trechoTitulo);
+        }
+
+
+
 
         // Filtro por ano - pergunta ao usuário a partir de que ano deseja ver os episódios
         System.out.println("\nA partir de que ano você deseja ver os episódios?");
@@ -145,9 +199,28 @@ public class Principal {
                         "Temporada: " + e.getTemporada() +
                         " - Episódio: " + e.getTitulo() +
                         " - Data lançamento: " + e.getDataLancamento().format(formatador)
-                )); 
+                ));
+        
+        System.out.println("\n=== FIM DA CONSULTA ===");
+                
 
 
+        // Estatísticas completas das avaliações - DoubleSummaryStatistics
+        System.out.println("\n=== ESTATÍSTICAS DAS AVALIAÇÕES ===");
+        
+        // DoubleSummaryStatistics coleta várias estatísticas em uma única operação
+        DoubleSummaryStatistics estatisticas = episodios.stream()
+                .filter(e -> e.getAvaliacao() > 0.0) // Remove episódios com avaliação 0.0 (eram "N/A")
+                .collect(Collectors.summarizingDouble(Episodio::getAvaliacao));
+
+        // Exibição formatada das estatísticas
+        System.out.println("Quantidade de episódios avaliados: " + estatisticas.getCount());
+        System.out.println("Menor avaliação: " + String.format("%.1f", estatisticas.getMin()));
+        System.out.println("Maior avaliação: " + String.format("%.1f", estatisticas.getMax()));
+        System.out.println("Média das avaliações: " + String.format("%.2f", estatisticas.getAverage()));
+        System.out.println("Soma total das avaliações: " + String.format("%.1f", estatisticas.getSum()));
+
+        System.out.println("\n=== ============ ===");
 
 
 

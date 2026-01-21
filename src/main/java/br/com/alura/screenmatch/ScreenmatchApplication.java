@@ -21,8 +21,11 @@ public class ScreenmatchApplication implements CommandLineRunner {
 	// CommandLineRunner permite executar código quando a aplicação inicia
 	@Override
 	public void run(String... args) throws Exception {
-		// Executa apenas o projeto de séries
+		// Executa apenas o projeto de séries uma vez
 		Principal principal = new Principal();
 		principal.exibirMenu();
+		
+		// Encerra a aplicação após execução
+		System.exit(0);
 	}
 }
